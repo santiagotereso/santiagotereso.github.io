@@ -56,12 +56,12 @@
   /* ---------------- grid: big tiles, flush ---------------- */
   .grid{
     display:flex;flex-wrap:wrap;
-    gap:0;
+    gap:0;--cols:4;
   }
   /* each row always adds up to 100%: the hovered tile doubles and its
      row-mates give up the width between them, so nothing rewraps */
   .card{
-    position:relative;display:block;flex:0 0 25%;min-width:0;
+    position:relative;display:block;flex:0 0 calc(100% / var(--cols));min-width:0;
     transition:flex-basis .5s cubic-bezier(.22,.7,.2,1);
   }
   /* row-mates of the hovered tile stretch to its taller height (cover crop) */
@@ -223,10 +223,10 @@
 
   /* the line is set to fill its measure; the narrowest screens need a touch less */
   @media (max-width:1100px){
-    .card{flex-basis:50%}
+    .grid{--cols:2}
   }
   @media (max-width:640px){
-    .card{flex-basis:100%}
+    .grid{--cols:1}
   }
   @media (max-width:900px){
     header.hero{padding:56px 22px 34px}
@@ -489,7 +489,7 @@
   const grid=document.querySelector('.grid');
   const cards=[...grid.querySelectorAll('.card')];
   const GROW=2;
-  const cols=()=>innerWidth>1100?4:innerWidth>640?2:1;
+  const cols=()=>parseInt(getComputedStyle(grid).getPropertyValue('--cols'))||4;
   let row=null;
   const reset=()=>{if(row)row.forEach(c=>{c.style.flexBasis='';c.classList.remove('squeeze');});row=null;};
   cards.forEach((card,i)=>card.addEventListener('mouseenter',()=>{
