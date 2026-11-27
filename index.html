@@ -551,7 +551,10 @@
     --name-size:66px;--name-lh:.92}
 
   /* hover: rol y logo un tercio más grandes */
-  .tile .cap .role,.card:hover .tile .cap .role{font-size:clamp(15px,1.3vw,22px);line-height:1.1}
+  .tile .cap .role,.card:hover .tile .cap .role{font-size:clamp(15px,1.3vw,22px);line-height:1.15}
+  /* Anton tiene un solo peso: sin esto el navegador inventa una negrita que empasta las letras */
+  .role,.mark.word{font-weight:400}
+  .tile .cap .role,.card:hover .tile .cap .role{letter-spacing:.06em;text-shadow:0 1px 6px rgba(0,0,0,.55)}
   .tile .cap .mark{width:clamp(60px,6.4vw,108px);height:clamp(24px,2.6vw,42px)}
   .tile .cap .mark.word{font-size:clamp(14px,1.2vw,20px)}
 </style>
