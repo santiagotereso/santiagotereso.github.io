@@ -75,12 +75,12 @@
     filter:saturate(.9) brightness(.8);
     transition:filter .3s ease,transform .55s ease,opacity .35s ease;
   }
-  .card:hover .tile img,.tile:focus-visible img{
+  .card.on .tile img,.tile:focus-visible img{
     filter:saturate(1) brightness(1);transform:scale(1.04);
   }
   /* where a role takes over on hover the frame steps back instead, so the
      white type has something to sit on */
-  .card.has-role:hover .tile img,.card.has-role .tile:focus-visible img{
+  .card.has-role.on .tile img,.card.has-role .tile:focus-visible img{
     filter:saturate(.85) brightness(1);
   }
 
@@ -89,8 +89,8 @@
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
     opacity:0;transition:opacity .35s ease;pointer-events:none;
   }
-  .card:hover .tile video.loop.ready,.tile:focus-visible video.loop.ready{opacity:1}
-  .card.has-role:hover .tile video.loop{filter:none}
+  .card.on .tile video.loop.ready,.tile:focus-visible video.loop.ready{opacity:1}
+  .card.has-role.on .tile video.loop{filter:none}
   .tile:focus-visible{outline:2px solid var(--brass);outline-offset:-4px}
 
   .scrim{
@@ -102,7 +102,7 @@
       rgba(5,5,7,.86) 100%);
     transition:opacity .3s ease;
   }
-  .card:hover .scrim{opacity:.55}
+  .card.on .scrim{opacity:.55}
 
   /* brand mark, centred in the upper two-thirds so it clears the caption */
   .mark{
@@ -123,7 +123,7 @@
   }
   /* the logo clears out entirely when a role is there to replace it */
   /* on hover the centred logo clears and the caption block rises at the bottom */
-  .card:hover .tile > .mark,.tile:focus-visible > .mark{opacity:0}
+  .card.on .tile > .mark,.tile:focus-visible > .mark{opacity:0}
   .cap{
     position:absolute;left:0;right:0;bottom:0;pointer-events:none;
     display:flex;flex-direction:row;justify-content:space-between;align-items:flex-end;
@@ -131,9 +131,9 @@
     opacity:0;transform:translateY(6px);
     transition:opacity .3s ease,transform .35s ease;
   }
-  .card:hover .cap,.tile:focus-visible .cap{opacity:1;transform:none}
+  .card.on .cap,.tile:focus-visible .cap{opacity:1;transform:none}
   /* role: small, flush left */
-  .tile .cap .role,.card:hover .tile .cap .role{
+  .tile .cap .role,.card.on .tile .cap .role{
     position:static;transform:none;opacity:1;width:auto;flex:0 1 auto;max-width:72%;
     text-align:left;font-size:clamp(12px,.95vw,16px);line-height:1.12;letter-spacing:.03em;
     text-shadow:0 1px 10px rgba(0,0,0,.7);
@@ -185,7 +185,7 @@
     color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.6);
     opacity:0;transition:opacity .28s ease,transform .28s ease;
   }
-  .card:hover .role,.tile:focus-visible .role{
+  .card.on .role,.tile:focus-visible .role{
     opacity:1;transform:translate(-50%,-50%);
   }
 
@@ -198,16 +198,16 @@
     color:var(--ink);background:rgba(8,8,10,.66);border:1px solid rgba(242,241,237,.24);
     padding:5px 9px;opacity:0;transition:opacity .22s,background .2s,border-color .2s;
   }
-  .card:hover .play,.play:focus-visible{opacity:1}
+  .card.on .play,.play:focus-visible{opacity:1}
   .play:hover{background:var(--brass);color:var(--ground);border-color:var(--brass)}
   .play:focus-visible{outline:2px solid var(--brass);outline-offset:2px;opacity:1}
 
   /* spotlight: while one tile is hovered the others fade toward black,
      only the picture; their logos stay at full strength */
   @media (hover:hover){
-    .grid:has(.card:hover) .card:not(:hover) .tile{background:#000}
-    .grid:has(.card:hover) .card:not(:hover) .tile img{opacity:.28}
-    .grid:has(.card:hover) .card:not(:hover) .tile .scrim{opacity:.4}
+    .grid:has(.card.on) .card:not(.on) .tile{background:#000}
+    .grid:has(.card.on) .card:not(.on) .tile img{opacity:.28}
+    .grid:has(.card.on) .card:not(.on) .tile .scrim{opacity:.4}
   }
 
   /* ---------------- footer ---------------- */
@@ -235,7 +235,7 @@
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;animation:none!important}
-    .card:hover .tile img{transform:none}
+    .card.on .tile img{transform:none}
   }
 </style>
 
@@ -484,44 +484,75 @@
 
 
 <script>
-/* hover grow: the hovered tile takes 2x its share (row-mates never drop below half their share), the rest of its row
-   splits what is left, so the row reflows and grows a little taller */
+/* Hover = the card the pointer chose, not whatever slides under it.
+   The hovered tile takes 2x its share and the row reflows; while that animates
+   the layout moves under a still cursor, so the active card only changes on real
+   pointer movement, after a short pause, and never while the row is settling.
+   Without that, a reflow could put a neighbour under the cursor, which grew,
+   which reflowed again: the "glitch" loop. */
 (()=>{
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!matchMedia('(hover: hover)').matches)return;
+  if(!matchMedia('(hover: hover)').matches)return;
+  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const grid=document.querySelector('.grid');
   const cards=[...grid.querySelectorAll('.card')];
-  const GROW=2;
+  const GROW=2, SETTLE=560, INTENT=60;
   const cols=()=>parseInt(getComputedStyle(grid).getPropertyValue('--cols'))||4;
-  let row=null;
-  const reset=()=>{if(row)row.forEach(c=>{c.style.flexBasis='';c.classList.remove('squeeze');});row=null;};
-  cards.forEach((card,i)=>card.addEventListener('mouseenter',()=>{
-    const n=cols(); if(n<2||getComputedStyle(grid).getPropertyValue('--grow').trim()==='0'){reset();return;}
-    const start=i-i%n, mates=cards.slice(start,start+n);
-    if(row&&row[0]!==mates[0])reset();
-    const share=100/n, big=Math.min(share*GROW,100-(n-1)*share*.5), rest=mates.length>1?(100-big)/(mates.length-1):100;
-    if(mates.length<n){ /* short last row: grow without squeezing */
-      mates.forEach(c=>{c.style.flexBasis=(c===card?big:share)+'%';c.classList.toggle('squeeze',c!==card);});
-    }else{
-      mates.forEach(c=>{c.style.flexBasis=(c===card?big:rest)+'%';c.classList.toggle('squeeze',c!==card);});
-    }
-    row=mates;
-  }));
-  grid.addEventListener('mouseleave',reset);
-  addEventListener('resize',reset);
-})();
-(()=>{
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!matchMedia('(hover: hover)').matches)return;
+  let active=null,row=null,lockUntil=0,timer=null,px=-1,py=-1;
+
+  /* loops: preload as they come near, play only on the active card */
   const vids=[...document.querySelectorAll('video.loop')];
   vids.forEach(v=>v.addEventListener('playing',()=>v.classList.add('ready')));
   const io=new IntersectionObserver(es=>es.forEach(e=>{
     if(e.isIntersecting){e.target.preload='auto';e.target.load();io.unobserve(e.target);}
   }),{rootMargin:'300px'});
-  vids.forEach(v=>{
-    io.observe(v);
-    const card=v.closest('.card');
-    card.addEventListener('mouseenter',()=>{v.currentTime=0;v.play().catch(()=>{});});
-    card.addEventListener('mouseleave',()=>{v.pause();v.classList.remove('ready');});
+  vids.forEach(v=>io.observe(v));
+  const vid=c=>c.querySelector('video.loop');
+
+  const resetRow=()=>{if(row)row.forEach(c=>{c.style.flexBasis='';c.classList.remove('squeeze');});row=null;};
+  const grow=card=>{
+    const n=cols(), i=cards.indexOf(card);
+    if(still||n<2){resetRow();return false;}
+    const start=i-i%n, mates=cards.slice(start,start+n);
+    if(row&&row[0]!==mates[0])resetRow();
+    const share=100/n, big=Math.min(share*GROW,100-(n-1)*share*.5), rest=mates.length>1?(100-big)/(mates.length-1):100;
+    const short=mates.length<n; /* short last row: grow without squeezing */
+    mates.forEach(c=>{c.style.flexBasis=(c===card?big:(short?share:rest))+'%';c.classList.toggle('squeeze',c!==card);});
+    row=mates;return true;
+  };
+  const deactivate=()=>{
+    if(!active)return;
+    active.classList.remove('on');
+    const v=vid(active);if(v){v.pause();v.classList.remove('ready');}
+    active=null;
+  };
+  const activate=card=>{
+    if(card===active)return;
+    deactivate();active=card;card.classList.add('on');
+    const v=vid(card);if(v){v.currentTime=0;v.play().catch(()=>{});}
+    if(grow(card))lockUntil=performance.now()+SETTLE;
+  };
+  const leave=()=>{clearTimeout(timer);deactivate();resetRow();};
+  const pick=()=>{
+    const wait=lockUntil-performance.now();
+    if(wait>0){clearTimeout(timer);timer=setTimeout(pick,wait+10);return;}
+    const el=document.elementFromPoint(px,py), c=el&&el.closest('.card');
+    if(c&&grid.contains(c))activate(c);else leave();
+  };
+  grid.addEventListener('pointermove',e=>{
+    if(e.pointerType!=='mouse'&&e.pointerType!=='pen')return;
+    px=e.clientX;py=e.clientY;
+    clearTimeout(timer);timer=setTimeout(pick,active?INTENT:0);
   });
+  grid.addEventListener('pointerleave',e=>{
+    /* a reflow can briefly pull the edge of the grid past a still cursor; only leave for real */
+    const r=grid.getBoundingClientRect();
+    if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)return;
+    leave();
+  });
+  /* scrolling moves the grid under a still cursor: re-pick once it stops */
+  addEventListener('scroll',()=>{if(px<0||!active)return;clearTimeout(timer);timer=setTimeout(pick,120);},{passive:true});
+  addEventListener('resize',leave);
+  addEventListener('blur',leave);
 })();
 </script>
 
@@ -551,10 +582,10 @@
     --name-size:66px;--name-lh:.92}
 
   /* hover: rol y logo un tercio más grandes */
-  .tile .cap .role,.card:hover .tile .cap .role{font-size:clamp(15px,1.3vw,22px);line-height:1.15}
+  .tile .cap .role,.card.on .tile .cap .role{font-size:clamp(15px,1.3vw,22px);line-height:1.15}
   /* Anton tiene un solo peso: sin esto el navegador inventa una negrita que empasta las letras */
   .role,.mark.word{font-weight:400}
-  .tile .cap .role,.card:hover .tile .cap .role{letter-spacing:.06em;text-shadow:0 1px 6px rgba(0,0,0,.55)}
+  .tile .cap .role,.card.on .tile .cap .role{letter-spacing:.06em;text-shadow:0 1px 6px rgba(0,0,0,.55)}
   .tile .cap .mark{width:clamp(60px,6.4vw,108px);height:clamp(24px,2.6vw,42px)}
   .tile .cap .mark.word{font-size:clamp(14px,1.2vw,20px)}
 </style>
