@@ -241,12 +241,14 @@
 
 <div class="wrap">
 
-  <header class="hero">
-    <h1>Santiago Tereso <span class="at">en 3dar</span></h1>
-    <p class="cred">
-      <span class="roles">PRODUCTOR</span>
-    </p>
-  </header>
+  <aside class="hv-d">
+    <h1 class="d-name">Santiago<br>Tereso</h1>
+    <p class="d-role">Productor en 3dar</p>
+    <ul class="d-list">
+      <li>Head Producer</li><li>CG Producer</li><li>On Set Production Supervisor</li><li>Head of Post</li>
+    </ul>
+    <a class="d-mail" href="mailto:santiago@3dar.com">santiago@3dar.com</a>
+  </aside>
 
   <main class="grid">
       <article class="card has-role">
@@ -493,7 +495,7 @@
   let row=null;
   const reset=()=>{if(row)row.forEach(c=>{c.style.flexBasis='';c.classList.remove('squeeze');});row=null;};
   cards.forEach((card,i)=>card.addEventListener('mouseenter',()=>{
-    const n=cols(); if(n<2){reset();return;}
+    const n=cols(); if(n<2||getComputedStyle(grid).getPropertyValue('--grow').trim()==='0'){reset();return;}
     const start=i-i%n, mates=cards.slice(start,start+n);
     if(row&&row[0]!==mates[0])reset();
     const share=100/n, big=Math.min(share*GROW,100-(n-1)*share*.5), rest=mates.length>1?(100-big)/(mates.length-1):100;
@@ -522,4 +524,30 @@
   });
 })();
 </script>
+
+<!-- lateral: barra bermellón, Anton + Fraunces -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:ital,opsz,wght@1,9..144,400&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+  body{font-family:var(--fn-mono)}
+  @media (min-width:900px){
+    .hv-d{display:flex!important;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:300px;z-index:10;
+      padding:40px 30px 32px;background:var(--side);color:var(--side-ink)}
+    .wrap{margin-left:300px}
+    .grid{--cols:3}
+  }
+  @media (max-width:899px){
+    .hv-d{display:block!important;padding:40px 22px 30px;background:var(--side);color:var(--side-ink)}
+  }
+  .d-name{margin:0;font-family:var(--fn-name);font-weight:var(--name-w,400);text-transform:uppercase;
+    font-size:var(--name-size,64px);line-height:var(--name-lh,.9);letter-spacing:var(--name-ls,0)}
+  .d-role{margin:18px 0 0;font-family:var(--fn-role);font-style:italic;font-size:var(--role-size,24px);line-height:1.15}
+  .d-list{list-style:none;margin:26px 0 0;padding:0;font-family:var(--fn-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;line-height:2}
+  .d-mail{margin-top:auto;font-family:var(--fn-mono);font-size:12px;color:var(--side-ink)}
+  .mark.word,.role{font-family:var(--fn-name)}
+
+  /* 1 · Bermellón — Anton + Fraunces */
+  body{--side:#E0412A;--side-ink:#120806;--brass:#FF5A3D;--brass-dim:#8F2E1F;
+    --fn-name:"Anton",Impact,sans-serif;--fn-role:"Fraunces",Georgia,serif;--fn-mono:"JetBrains Mono",ui-monospace,monospace;
+    --name-size:66px;--name-lh:.92}
+</style>
 </body></html>
